@@ -114,10 +114,6 @@ impl Config {
                     // A standard VGA card with Bochs VBE extensions.
                     "-vga",
                     "std",
-                    // Connect the serial port to the host. OVMF is kind enough to connect
-                    // the UEFI stdout and stdin to that port too.
-                    "-serial",
-                    "stdio",
                 ]
                 .into_iter()
                 .map(|x| x.to_owned()),
