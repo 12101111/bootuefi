@@ -6,20 +6,22 @@ use std::path::{Path, PathBuf};
 use wait_timeout::ChildExt;
 
 fn main() {
-    if let Err(e) = run() {
-        eprintln!("{}", e);
-        std::process::exit(1);
+    match run() {
+        Err(e) => {
+            eprintln!("{}", e);
+            std::process::exit(1);
+        }
+        Ok(exit_code) => std::process::exit(exit_code),
     }
 }
 
-fn run() -> Result<(), Error> {
+fn run() -> Result<i32, Error> {
     let uefi_path = get_uefi_path()?;
     let config = Config::read()?;
     let esp = make_esp(uefi_path.as_path())?;
     let is_test = is_test(uefi_path.as_path());
     let profile = config.build_profile(is_test, esp.path())?;
-    let exit_code = run_qemu(is_test, profile)?;
-    std::process::exit(exit_code)
+    run_qemu(is_test, profile)
 }
 
 fn get_uefi_path() -> Result<PathBuf, Error> {
@@ -62,7 +64,7 @@ fn make_esp(uefi_path: &Path) -> Result<TempDir, Error> {
     Ok(esp)
 }
 
-fn run_qemu(is_test:bool, profile:Profile)->Result<i32,Error>{
+fn run_qemu(is_test: bool, profile: Profile) -> Result<i32, Error> {
     let mut cmd = std::process::Command::new(profile.qemu);
     cmd.args(profile.args);
     let exit_code = if is_test {
