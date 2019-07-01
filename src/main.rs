@@ -31,8 +31,7 @@ fn get_uefi_path() -> Result<PathBuf, Error> {
         .next()
         .ok_or_else(|| format_err!("No input file!\nFor more information try -h"))?;
     if arg == "-h" {
-        //TODO: make doc here
-        print!(include_str!("../README.md"));
+        print!("See document in https://github.com/12101111/bootuefi");
         std::process::exit(0);
     }
     Ok(arg.into())

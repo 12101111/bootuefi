@@ -2,6 +2,24 @@
 
 This is a tool for running and testing Rust UEFI project.
 
+BootUEFI is modified from [bootimage](https://github.com/rust-osdev/bootimage)
+
+## Usage
+
+First you should install `cargo-xbuild`.
+
+Then set `bootuefi` as a custom runner in `.cargo/config`:
+
+```toml
+[build]
+target = "x86_64-unknown-uefi"
+
+[target.x86_64-unknown-uefi]
+runner = "bootuefi"
+```
+
+You can run your rust UEFI application through `cargo xrun` or test it throught `cargo xtest`.
+
 ## Configuration
 
 Configuration is done through a through a `[package.metadata.bootuefi]` table in the `Cargo.toml` of your project. The following options are available:
@@ -44,3 +62,15 @@ Default arguments for qemu:
 // Connect the serial port to the host. OVMF is kind enough to connect the UEFI stdout and stdin to that port too.
     "-serial", "stdio",
 ```
+
+## License
+
+Licensed under either of
+
+- Apache License, Version 2.0 ([LICENSE-APACHE](LICENSE-APACHE) or
+  http://www.apache.org/licenses/LICENSE-2.0)
+- MIT license ([LICENSE-MIT](LICENSE-MIT) or http://opensource.org/licenses/MIT)
+
+at your option.
+
+Unless you explicitly state otherwise, any contribution intentionally submitted for inclusion in the work by you, as defined in the Apache-2.0 license, shall be dual licensed as above, without any additional terms or conditions.
