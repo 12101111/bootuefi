@@ -49,6 +49,7 @@ impl Config {
             match (key.as_str(), value.clone()) {
                 ("qemu", Value::String(s)) => config.qemu = Some(s),
                 ("bios", Value::String(s)) => config.bios = Some(s),
+                ("default-args", Value::Boolean(b)) => config.default_args = Some(b),
                 ("test-timeout", Value::Integer(i)) => {
                     if i < 0 {
                         return Err(format_err!("test-timeout must not be negative"));
@@ -79,7 +80,7 @@ impl Config {
                             }
                         }
                     }
-                    config.run_args = Some(args);
+                    config.test_args = Some(args);
                 }
                 (key, value) => {
                     return Err(format_err!(
