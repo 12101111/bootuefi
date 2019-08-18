@@ -4,6 +4,12 @@ This is a tool for running and testing Rust UEFI project.
 
 BootUEFI is modified from [bootimage](https://github.com/rust-osdev/bootimage)
 
+## Install
+
+```shell
+cargo install bootuefi
+```
+
 ## Usage
 
 First you should install `cargo-xbuild`.
