@@ -64,7 +64,7 @@ fn make_esp(uefi_path: &Path) -> Result<TempDir, Error> {
 }
 
 fn run_qemu(is_test: bool, profile: Profile) -> Result<i32, Error> {
-    println!("Runing: `{} {}`",profile.qemu,profile.args.join(" "));
+    println!("Runing: `{} {}`", profile.qemu, profile.args.join(" "));
     let mut cmd = std::process::Command::new(profile.qemu);
     cmd.args(profile.args);
     let exit_code = if is_test {
