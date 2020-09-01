@@ -1,4 +1,4 @@
-use failure::{format_err, Error};
+use anyhow::{anyhow, Context, Result};
 use std::fs::File;
 use std::io::Read;
 use std::path::Path;
@@ -23,17 +23,17 @@ pub struct Profile {
 }
 
 impl Config {
-    pub fn read() -> Result<Config, Error> {
-        let manifest_path = locate_cargo_manifest::locate_manifest()
-            .map_err(|e| format_err!("Can't find Cargo.toml: {:?}", e))?;
+    pub fn read() -> Result<Config> {
+        let manifest_path =
+            locate_cargo_manifest::locate_manifest().context("Can't find Cargo.toml")?;
         let mut mainfest_context = String::new();
         File::open(manifest_path)
-            .map_err(|e| format_err!("Failed to open Cargo.toml: {}", e))?
+            .context("Failed to open Cargo.toml")?
             .read_to_string(&mut mainfest_context)
-            .map_err(|e| format_err!("Failed to read Cargo.toml: {}", e))?;
+            .context("Failed to read Cargo.toml")?;
         let cargo_toml = mainfest_context
             .parse::<Value>()
-            .map_err(|e| format_err!("Failed to parse Cargo.toml: {}", e))?;
+            .context("Failed to parse Cargo.toml")?;
         let metadata = match cargo_toml
             .get("package")
             .and_then(|table| table.get("metadata"))
@@ -42,7 +42,7 @@ impl Config {
             None => return Ok(Default::default()),
             Some(meta) => meta
                 .as_table()
-                .ok_or(format_err!("package.metadata.bootuefi is invalid"))?,
+                .ok_or(anyhow!("package.metadata.bootuefi is invalid"))?,
         };
         let mut config: Config = Default::default();
         for (key, value) in metadata {
@@ -52,7 +52,7 @@ impl Config {
                 ("default-args", Value::Boolean(b)) => config.default_args = Some(b),
                 ("test-timeout", Value::Integer(i)) => {
                     if i < 0 {
-                        return Err(format_err!("test-timeout must not be negative"));
+                        return Err(anyhow!("test-timeout must not be negative"));
                     } else {
                         config.test_timeout = Some(i as u32);
                     }
@@ -65,7 +65,7 @@ impl Config {
                     for v in a {
                         match v {
                             Value::String(s) => args.push(s),
-                            _ => return Err(format_err!("run-args has non string element: {}", v)),
+                            _ => return Err(anyhow!("run-args has non string element: {}", v)),
                         }
                     }
                     config.run_args = Some(args);
@@ -75,15 +75,13 @@ impl Config {
                     for v in a {
                         match v {
                             Value::String(s) => args.push(s),
-                            _ => {
-                                return Err(format_err!("test-args has non string element: {}", v))
-                            }
+                            _ => return Err(anyhow!("test-args has non string element: {}", v)),
                         }
                     }
                     config.test_args = Some(args);
                 }
                 (key, value) => {
-                    return Err(format_err!(
+                    return Err(anyhow!(
                         "unexpect key `{}` with value `{}` in `package.metadata.bootuefi`",
                         key,
                         value
@@ -94,7 +92,7 @@ impl Config {
         Ok(config)
     }
 
-    pub fn build_profile(self, is_test: bool, esp: &Path) -> Result<Profile, Error> {
+    pub fn build_profile(self, is_test: bool, esp: &Path) -> Result<Profile> {
         let qemu = self.qemu.unwrap_or("qemu-system-x86_64".into());
         let bios = self.bios.unwrap_or("OVMF.fd".into());
         let mut args = if is_test {
