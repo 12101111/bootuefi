@@ -9,7 +9,7 @@ use wait_timeout::ChildExt;
 fn main() -> Result<()> {
     let uefi_path = get_uefi_path()?;
     let config = Config::read()?;
-    let esp = make_esp(uefi_path.as_path())?;
+    let esp = make_esp(uefi_path.as_path(), &config.copy)?;
     let is_test = is_test(uefi_path.as_path());
     let profile = config.build_profile(is_test, esp.path())?;
     let code = run_qemu(is_test, profile)?;
@@ -19,9 +19,9 @@ fn main() -> Result<()> {
 fn get_uefi_path() -> Result<PathBuf> {
     let mut args = std::env::args();
     let _ = args.next();
-    let arg = args
-        .next()
-        .ok_or_else(|| anyhow!("No input file!\nFor more information try -h"))?;
+    let arg = args.next().ok_or_else(|| {
+        anyhow!("No input file!\nFor more information see https://github.com/12101111/bootuefi")
+    })?;
     if arg == "-h" {
         println!("See document in https://github.com/12101111/bootuefi");
         exit(0);
@@ -36,7 +36,7 @@ fn is_test(uefi_path: &Path) -> bool {
     }
 }
 
-fn make_esp(uefi_path: &Path) -> Result<TempDir> {
+fn make_esp(uefi_path: &Path, copy: &[(String, String)]) -> Result<TempDir> {
     let target_path = cargo_metadata::MetadataCommand::new()
         .no_deps()
         .exec()
@@ -49,7 +49,13 @@ fn make_esp(uefi_path: &Path) -> Result<TempDir> {
     std::fs::create_dir_all(efi_boot_path.clone())
         .context("Unable to create /EFI/BOOT directory")?;
     let bootx64_path = efi_boot_path.join("BOOTX64.EFI");
-    std::fs::copy(uefi_path, bootx64_path).context("Unable to copy EFI executable")?;
+    std::fs::copy(uefi_path, bootx64_path)
+        .with_context(|| format!("Unable to copy EFI executable {}", uefi_path.display()))?;
+    for (src, dst) in copy {
+        let real_dst = esp.path().join(dst);
+        std::fs::copy(&src, real_dst)
+            .with_context(|| format!("Unable to copy file {} to {}", src, dst))?;
+    }
     Ok(esp)
 }
 

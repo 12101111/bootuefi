@@ -13,6 +13,7 @@ pub struct Config {
     pub default_args: Option<bool>,
     pub test_success_exit_code: Option<i32>,
     pub test_timeout: Option<u32>,
+    pub copy: Vec<(String, String)>,
 }
 
 pub struct Profile {
@@ -27,7 +28,7 @@ impl Config {
         let manifest_path =
             locate_cargo_manifest::locate_manifest().context("Can't find Cargo.toml")?;
         let mut mainfest_context = String::new();
-        File::open(manifest_path)
+        File::open(&manifest_path)
             .context("Failed to open Cargo.toml")?
             .read_to_string(&mut mainfest_context)
             .context("Failed to read Cargo.toml")?;
@@ -42,7 +43,7 @@ impl Config {
             None => return Ok(Default::default()),
             Some(meta) => meta
                 .as_table()
-                .ok_or(anyhow!("package.metadata.bootuefi is invalid"))?,
+                .ok_or_else(|| anyhow!("package.metadata.bootuefi is invalid"))?,
         };
         let mut config: Config = Default::default();
         for (key, value) in metadata {
@@ -80,6 +81,17 @@ impl Config {
                     }
                     config.test_args = Some(args);
                 }
+                ("copy", Value::Table(a)) => {
+                    let mut args = Vec::new();
+                    for (k, v) in a {
+                        let v = match v {
+                            Value::String(s) => s,
+                            _ => return Err(anyhow!("`copy` table has non string element: {}", v)),
+                        };
+                        args.push((k, v));
+                    }
+                    config.copy = args;
+                }
                 (key, value) => {
                     return Err(anyhow!(
                         "unexpect key `{}` with value `{}` in `package.metadata.bootuefi`",
@@ -93,12 +105,12 @@ impl Config {
     }
 
     pub fn build_profile(self, is_test: bool, esp: &Path) -> Result<Profile> {
-        let qemu = self.qemu.unwrap_or("qemu-system-x86_64".into());
-        let bios = self.bios.unwrap_or("OVMF.fd".into());
+        let qemu = self.qemu.unwrap_or_else(|| "qemu-system-x86_64".into());
+        let bios = self.bios.unwrap_or_else(|| "OVMF.fd".into());
         let mut args = if is_test {
-            self.test_args.unwrap_or(Vec::new())
+            self.test_args.unwrap_or_else(Vec::new)
         } else {
-            self.run_args.unwrap_or(Vec::new())
+            self.run_args.unwrap_or_else(Vec::new)
         };
         if self.default_args.unwrap_or(true) {
             args.extend(
